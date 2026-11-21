@@ -435,13 +435,49 @@
       }
     },
     {
+      "id": "panelBase",
+      "type": "part",
+      "packageId": "oip.shape",
+      "position": [
+        -0.85,
+        0,
+        0.36
+      ],
+      "rotationY": 0,
+      "params": {
+        "length": 0.26,
+        "width": 0.44,
+        "height": 0.025,
+        "color": "#1d2025",
+        "solid": false
+      }
+    },
+    {
+      "id": "panel",
+      "type": "part",
+      "packageId": "oip.shape",
+      "position": [
+        -0.85,
+        0,
+        0.36
+      ],
+      "rotationY": 0,
+      "params": {
+        "length": 0.16,
+        "width": 0.34,
+        "height": 1.35,
+        "color": "#363b42",
+        "solid": false
+      }
+    },
+    {
       "id": "estop",
       "type": "part",
       "packageId": "oip.push-button",
       "position": [
-        -1.15,
+        -0.96,
         1.1,
-        0.45
+        0.44
       ],
       "rotationY": -1.570796,
       "params": {
@@ -455,7 +491,7 @@
       "type": "part",
       "packageId": "oip.push-button",
       "position": [
-        -1.15,
+        -0.96,
         1.1,
         0.28
       ],
@@ -471,8 +507,8 @@
       "type": "part",
       "packageId": "oip.stack-light",
       "position": [
-        -1.15,
-        1.45,
+        -0.85,
+        1.35,
         0.36
       ],
       "rotationY": 0,

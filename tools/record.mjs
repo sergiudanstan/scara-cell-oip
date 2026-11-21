@@ -24,7 +24,7 @@ for (let t = Date.now(); ; await wait(400)) {
   try { if ((await fetch(URL)).ok) break } catch { /* wait */ }
   if (Date.now() - t > 60000) { vite.kill(); throw new Error('vite did not start') }
 }
-const browser = await chromium.launch({ headless: true })
+const browser = await chromium.launch({ channel: 'chrome', headless: true }).catch(() => chromium.launch({ headless: true }))
 const context = await browser.newContext({ viewport: { width: W, height: H }, colorScheme: 'light' })
 const page = await context.newPage()
 const ready = () => page.waitForFunction(() => !!(globalThis.__oip?.store && __oip.controller && __oip.view), null, { timeout: 120000 })

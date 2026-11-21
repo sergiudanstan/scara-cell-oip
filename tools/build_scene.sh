@@ -52,10 +52,12 @@ add oip.diffuse-sensor --id eyeB2b --at -0.53,0.82,-0.15 --rot 90 --params "maxR
 add oip.diffuse-sensor --id eyeB2c --at -0.53,0.82,-0.35 --rot 90 --params "maxRange=0.34,tag=EyeB2c"
 add oip.diffuse-sensor --id eyeB2d --at -0.53,0.82,-0.55 --rot 90 --params "maxRange=0.34,tag=EyeB2d"
 
-# Operator devices on the -X side
-add oip.push-button --id estop --at -1.15,1.10,0.45 --rot -90 --params "emergencyStop=true,tag=EStopOk,text=E-STOP"
-add oip.push-button --id start --at -1.15,1.10,0.28 --rot -90 --params "tag=StartPB,text=START,buttonColor=#1e8f3a"
-add oip.stack-light --id stack --at -1.15,1.45,0.36 --params "tag=StackLight"
+# Operator control column on the -X side (floor-mounted cabinet + base plate; buttons flush on -X face, stack light on top)
+add oip.shape --id panelBase --at -0.85,0,0.36 --params "shape=box,length=0.26,width=0.44,height=0.025,color=#1d2025,solid=false"
+add oip.shape --id panel     --at -0.85,0,0.36 --params "shape=box,length=0.16,width=0.34,height=1.35,color=#363b42,solid=false"
+add oip.push-button --id estop --at -0.96,1.10,0.44 --rot -90 --params "emergencyStop=true,tag=EStopOk,text=E-STOP"
+add oip.push-button --id start --at -0.96,1.10,0.28 --rot -90 --params "tag=StartPB,text=START,buttonColor=#1e8f3a"
+add oip.stack-light --id stack --at -0.85,1.35,0.36 --params "tag=StackLight"
 
 # Bind plc/ and tests/ into project.json
 python3 - $P/project.json <<'PY'
