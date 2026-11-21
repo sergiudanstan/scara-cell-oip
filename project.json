@@ -1,0 +1,24 @@
+{
+  "version": 7,
+  "name": "scara-cell-oip",
+  "scene": "scene.json",
+  "program": [
+    "plc/program.st"
+  ],
+  "tests": [
+    "tests/escapement-interlock.test.json",
+    "tests/safety.test.json",
+    "tests/transfer.test.json"
+  ],
+  "packages": [
+    "parts/scara.transfer-robot",
+    "parts/oip.belt-conveyor",
+    "parts/oip.blade-stop",
+    "parts/oip.box-spawner",
+    "parts/oip.box",
+    "parts/oip.despawner",
+    "parts/oip.diffuse-sensor",
+    "parts/oip.push-button",
+    "parts/oip.stack-light"
+  ]
+}
