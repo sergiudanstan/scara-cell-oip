@@ -1,0 +1,1 @@
+import{l as e,o as t}from"./watchTable-D9U66CzD.js";var n=new WeakMap;function r(e,t){n.set(e,t)}function i(e){return n.get(e)??e}function a(e){return n.has(e)}function o(n,a,o){let s=e(n,a),c=(s?t(n,a,o):null)??{...n,[a]:o};return s&&r(c,i(n)),c}export{o as i,i as n,r,a as t};

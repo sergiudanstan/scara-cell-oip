@@ -1,0 +1,1 @@
+function e(e,t,n,r){let i=Math.tan(t/2),a=e*i,o=Math.min(a,n*.5,r*.5);return{inset:o,radius:o<a?o/i:e}}export{e as t};

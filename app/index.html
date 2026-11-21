@@ -1,0 +1,286 @@
+<!doctype html>
+<html lang="en" translate="no">
+  <head>
+<script src="/scara-cell-oip/app/base-shim.js"></script>
+<script src="/scara-cell-oip/app/autoload.js"></script>
+    <meta charset="utf-8" />
+    <!-- The editor opts out of browser translation, deliberately (the landing page does not;
+         it stays translatable). Chrome rewraps translated text nodes in <font>, so React then
+         removes/updates a node whose parent moved and the page goes blank. And most text in here is
+         identity or syntax rather than prose: ST keywords in Monaco, tag names, part names -
+         a translated tag in the Inspector no longer matches the one in the ST that references
+         it. Viewport text is canvas-drawn and untranslatable anyway, so even the good case is
+         half-English. -->
+    <meta name="google" content="notranslate" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover"
+    />
+    <!-- Home-screen app settings. iOS reads them from whichever page was added to the home
+         screen, so the landing (/index.html) has the same block. Keep the two in sync.
+
+         black-translucent draws the page behind the status bar. The phone toolbar adds
+         env(safe-area-inset-top) as top padding, so its background fills the area behind the
+         status bar. iOS 26 also blurs that area, and about 40pt below it, unless the page has a
+         fixed or sticky bar at the top. That is why the phone toolbar is sticky (mobile.css,
+         .app.mobile .toolbar). An opaque status bar does not avoid the blur (tested on an iPhone).
+
+         theme-color matches the toolbar background (--panel). Safari 26 ignores it; Chrome and
+         Android use it to colour their browser bars. -->
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="OIP" />
+    <meta name="theme-color" content="#202225" media="(prefers-color-scheme: dark)" />
+    <meta name="theme-color" content="#f5f6f7" media="(prefers-color-scheme: light)" />
+    <!-- The stored Light / Dark choice (src/editor/appearance.ts), stamped before anything paints so the
+         boot skeleton below comes up in it rather than in the OS's scheme and then flipping. The one
+         script ahead of the module graph; it only reads a preference. -->
+    <script>
+      try {
+        var t = localStorage.getItem('oip-web/appearance')
+        if (t === 'light' || t === 'dark') document.documentElement.dataset.theme = t
+      } catch (e) {}
+    </script>
+    <link rel="icon" type="image/png" sizes="32x32" href="/scara-cell-oip/favicon-32.png" />
+    <link rel="icon" type="image/png" sizes="16x16" href="/scara-cell-oip/favicon-16.png" />
+    <link rel="apple-touch-icon" href="/scara-cell-oip/apple-touch-icon.png" />
+
+    <!--
+      Front-run the default scene's building shell. building.ts fetches these GLBs +
+      textures eagerly (ungated) the moment the editor's render module boots, but
+      without these hints they wait behind the app chunk's own download + parse.
+      Preloading streams the building bytes in parallel with JS startup, so the
+      first-load cover, which holds until the building is fully textured (gltf.ts
+      coverReady), lifts sooner. Paths are stable/unhashed and same-origin.
+
+      `crossorigin` is required even though these are same-origin: an `as="fetch"` preload
+      without it is a no-CORS request while the runtime loads are CORS-mode (three's
+      ImageBitmapLoader fetch() and GLTFLoader XHR both are), so Chrome refuses to match
+      them and logs "A preload for <url> is found, but is not used because the request
+      credentials mode does not match" (measured on the prod build for all 16 of these).
+      The preloads would still warm the HTTP cache, so a waterfall shows no double download,
+      but the loader would re-issue every request instead of adopting the in-flight preload,
+      losing most of the head start this block exists for.
+    -->
+    <link rel="preload" as="fetch" crossorigin href="/scara-cell-oip/models/building/Roof_A.glb" />
+    <link rel="preload" as="fetch" crossorigin href="/scara-cell-oip/models/building/Roof_B.glb" />
+    <link rel="preload" as="fetch" crossorigin href="/scara-cell-oip/models/building/Wall_A.glb" />
+    <link rel="preload" as="fetch" crossorigin href="/scara-cell-oip/models/building/Wall_B.glb" />
+    <link rel="preload" as="fetch" crossorigin href="/scara-cell-oip/models/building/Wall_C.glb" />
+    <link rel="preload" as="fetch" crossorigin href="/scara-cell-oip/models/building/Wall_D.glb" />
+    <link rel="preload" as="fetch" crossorigin href="/scara-cell-oip/models/building/Roof_A_Wall.glb" />
+    <link rel="preload" as="fetch" crossorigin href="/scara-cell-oip/models/building/Dock_Wall_A.glb" />
+    <link rel="preload" as="fetch" crossorigin href="/scara-cell-oip/models/building/Dock_Wall_B.glb" />
+    <link rel="preload" as="fetch" crossorigin href="/scara-cell-oip/models/building/Personnel_Door.glb" />
+    <link rel="preload" as="fetch" crossorigin href="/scara-cell-oip/models/building/lightmaps/walls-nz.webp" />
+    <link rel="preload" as="fetch" crossorigin href="/scara-cell-oip/models/building/lightmaps/walls-pz.webp" />
+    <link rel="preload" as="fetch" crossorigin href="/scara-cell-oip/models/building/lightmaps/walls-nx.webp" />
+    <link rel="preload" as="fetch" crossorigin href="/scara-cell-oip/models/building/lightmaps/walls-px.webp" />
+    <link rel="preload" as="fetch" crossorigin href="/scara-cell-oip/models/building/textures/BuildingPart_Floor_A_BaseColor.webp" />
+    <link rel="preload" as="fetch" crossorigin href="/scara-cell-oip/models/building/textures/BuildingPart_FloorMacro_BaseColor.webp" />
+    <link rel="preload" as="fetch" crossorigin href="/scara-cell-oip/models/building/textures/BuildingPart_Fan_A_BaseColor.webp" />
+    <link rel="preload" as="fetch" crossorigin href="/scara-cell-oip/models/building/textures/BuildingPart_Framing_01_BaseColor.webp" />
+    <link rel="preload" as="fetch" crossorigin href="/scara-cell-oip/models/building/textures/BuildingPart_Framing_02_BaseColor.webp" />
+    <link rel="preload" as="fetch" crossorigin href="/scara-cell-oip/models/building/textures/BuildingPart_Roof_01_BaseColor.webp" />
+    <link rel="preload" as="fetch" crossorigin href="/scara-cell-oip/models/building/textures/BuildingPart_Light_A_BaseColor.webp" />
+    <link rel="preload" as="fetch" crossorigin href="/scara-cell-oip/models/building/textures/BuildingPart_Light_A_Emissive.webp" />
+    <link rel="preload" as="fetch" crossorigin href="/scara-cell-oip/models/building/textures/BuildingPart_Wall_01_BaseColor.webp" />
+    <link rel="preload" as="fetch" crossorigin href="/scara-cell-oip/models/building/textures/BuildingPart_Wall_02_BaseColor.webp" />
+
+    <title>Open Industry Project</title>
+
+    <!--
+      Boot skeleton: the app's silhouette, painted from static markup as soon as this document
+      loads, well ahead of the module graph that draws the real one.
+
+      Without it the window is blank for the whole first load. On the prod build through the real
+      host config, throttled to the profile verify-first-load uses, it takes first-contentful-paint
+      from 7286 ms to 1210 ms. (In dev, styles.css is in the module graph, so without the skeleton
+      the page is white until the graph loads. Prod extracts it to a <link>, so there it is dark.)
+
+      On the desktop, Electron's maximize() shows the window at ~320 ms (apps/desktop/main.cjs), and
+      it stays empty until the document loads. A splash window in front of it can't do this job: the
+      window that needs filling is this one, and a second window cannot be sized to line up with a
+      page (main.cjs has the measurements). Apple's HIG launch screen and Android 12's splash API
+      follow the same pattern: the pre-paint state matches the first screen, so the transition is a
+      fill-in rather than a cut.
+
+      It mirrors .app's grid at the default dock sizes and tab strips, and the logo block is
+      .viewport-cover's, so
+      the real cover puts the logo in the same rect at the same size and nothing moves when React
+      commits. Defaults are the right target even though the sizes persist per user: the visitor this
+      exists for is the one arriving cold, who has no saved layout. The returning user whose
+      layout differs is also the one whose graph is already cached, so their skeleton is on screen
+      for a moment. Below MOBILE_QUERY the docks aren't in the layout at all, so neither are they
+      here.
+
+      Everything here is a copy of a value that lives in the app, so bootSkeleton.test.ts reads both
+      files and fails if any of them drifts: the four colours (styles.css :root), the dock sizes
+      (App.tsx DEFAULT_SIZES, and the front bottom panel's dockLayout.ts DEFAULT_BOTTOM_HEIGHT), the grid's
+      shape (dockLayout.ts buildDockGrid), each dock's tabs in order (dockLayout.ts defaultDockLayout), the logo
+      rule (.viewport-cover-logo) and the mobile breakpoint. Kept
+      inline (no extra request) and script-free. App.tsx removes it in a layout effect, i.e. before
+      the first frame that has the real UI in it. No spinner, for the reason ViewportLoadingCover
+      documents at length: a stalled animation reads as a hang, and this phase is exactly when the
+      main thread stalls.
+    -->
+    <style>:root{color-scheme:light dark}:root[data-theme=dark]{color-scheme:dark}:root[data-theme=light]{color-scheme:light}#boot-skeleton,#boot-skeleton *{box-sizing:border-box}#boot-skeleton{z-index:10;letter-spacing:.04em;-webkit-user-select:none;user-select:none;background:light-dark(#fff,#17181b);grid-template:"toolbar toolbar toolbar toolbar toolbar"48px"left gutl viewport gutr inspector"minmax(0,1fr)"gutd gutd gutd gutr inspector"6px"dock dock dock gutr inspector"200px/260px 6px minmax(0,1fr) 6px 320px;font:12px/1.45 system-ui,Segoe UI,sans-serif;display:grid;position:fixed;inset:0}#boot-skeleton>div{background:light-dark(#f5f6f7,#202225)}#boot-skeleton :is(.bs-gutl,.bs-gutr,.bs-gutd){background:light-dark(#e0e2e5,#2e3136)}#boot-skeleton .bs-toolbar{border-bottom:1px solid light-dark(#e0e2e5,#2e3136);grid-area:toolbar;grid-template-columns:1fr auto 1fr;align-items:center;padding:0 12px;display:grid}#boot-skeleton .bs-tb-left{justify-self:start}#boot-skeleton .bs-tb-run{justify-self:center}#boot-skeleton .bs-tb-right{justify-self:end}#boot-skeleton :is(.bs-tb-left,.bs-tb-run,.bs-tb-right){align-items:center;gap:8px;display:flex}#boot-skeleton .bs-ghost{opacity:.4;background:light-dark(#e6e7e9,#2c2f33);border:1px solid light-dark(#c9ccd1,#3a3e44);border-radius:4px;height:28px}#boot-skeleton .bs-transport{display:flex}#boot-skeleton .bs-transport>.bs-ghost{border-radius:0}#boot-skeleton .bs-transport>.bs-ghost+.bs-ghost{margin-left:-1px}#boot-skeleton .bs-transport>.bs-ghost:first-child{border-radius:4px 0 0 4px}#boot-skeleton .bs-transport>.bs-ghost:last-child{border-radius:0 4px 4px 0}#boot-skeleton .bs-mark{opacity:.55;width:24px;height:24px}#boot-skeleton .bs-project{width:128px}#boot-skeleton .bs-share{width:80px}#boot-skeleton .bs-icon{width:32px}#boot-skeleton .bs-more{width:34px;display:none}#boot-skeleton .bs-sep{background:light-dark(#c9ccd1,#3a3e44);width:1px;height:18px}#boot-skeleton .bs-tb-right{margin-right:calc(100vw - env(titlebar-area-width,100vw) - env(titlebar-area-x,0px))}#boot-skeleton .bs-left{grid-area:left}#boot-skeleton .bs-gutl{grid-area:gutl}#boot-skeleton .bs-gutr{grid-area:gutr}#boot-skeleton .bs-right{grid-area:inspector}#boot-skeleton .bs-gutd{grid-area:gutd}#boot-skeleton .bs-dock{grid-area:dock}#boot-skeleton .bs-tabbar{display:none}#boot-skeleton .bs-viewport{color-scheme:dark;color:light-dark(#61666c,#8b9097);background:light-dark(#fff,#17181b);flex-direction:column;grid-area:viewport;justify-content:center;align-items:center;gap:20px;display:flex}#boot-skeleton .bs-tabs{border-bottom:1px solid light-dark(#e0e2e5,#2e3136);gap:2px;padding:4px 4px 0;display:flex}#boot-skeleton .bs-tab{color:light-dark(#61666c,#8b9097);border:1px solid #0000;border-bottom:none;border-radius:5px 5px 0 0;padding:4px 12px;font-size:12px;font-weight:600}#boot-skeleton .bs-tab.bs-on{color:light-dark(#212428,#d7dade);background:light-dark(#fff,#17181b);border-color:light-dark(#e0e2e5,#2e3136)}#boot-skeleton img{aspect-ratio:850/296.98;object-fit:contain;-webkit-user-drag:none;width:min(46%,280px);max-height:45%}@media (width<=820px),(orientation:landscape) and (height<=560px){#boot-skeleton{grid-template:"toolbar""viewport"minmax(0,1fr)/minmax(0,1fr)}#boot-skeleton :is(.bs-left,.bs-right,.bs-dock,.bs-gutl,.bs-gutr,.bs-gutd){display:none}#boot-skeleton .bs-toolbar{height:auto;min-height:calc(48px + env(safe-area-inset-top));padding-top:env(safe-area-inset-top);justify-content:space-between;display:flex;position:sticky;top:0}#boot-skeleton .bs-mark{display:none}#boot-skeleton .bs-share{width:42px}#boot-skeleton :is(.bs-speed,.bs-icon,.bs-sep){display:none}#boot-skeleton .bs-more{display:block}#boot-skeleton .bs-tabbar{height:calc(54px + env(safe-area-inset-bottom));background:light-dark(#f5f6f7,#202225);border-top:1px solid light-dark(#e0e2e5,#2e3136);display:block;position:fixed;bottom:0;left:0;right:0}}</style>
+    <script type="module" crossorigin src="/scara-cell-oip/assets/app-BeisZd9a.js"></script>
+    <link rel="modulepreload" crossorigin href="/scara-cell-oip/assets/rolldown-runtime-hePW80VL.js">
+    <link rel="modulepreload" crossorigin href="/scara-cell-oip/assets/modulepreload-polyfill-P2Xu9kJm.js">
+    <link rel="modulepreload" crossorigin href="/scara-cell-oip/assets/react-Cvdyeg_0.js">
+    <link rel="modulepreload" crossorigin href="/scara-cell-oip/assets/react-dom-B-VxWsjA.js">
+    <link rel="modulepreload" crossorigin href="/scara-cell-oip/assets/partRegistry-DvjROnGN.js">
+    <link rel="modulepreload" crossorigin href="/scara-cell-oip/assets/types-BGtO3Ou8.js">
+    <link rel="modulepreload" crossorigin href="/scara-cell-oip/assets/filletCorner-DndHaolO.js">
+    <link rel="modulepreload" crossorigin href="/scara-cell-oip/assets/partSandbox-sulUfGPm.js">
+    <link rel="modulepreload" crossorigin href="/scara-cell-oip/assets/rigPose-DCjoz2UQ.js">
+    <link rel="modulepreload" crossorigin href="/scara-cell-oip/assets/cargoBody-BwfPBuD6.js">
+    <link rel="modulepreload" crossorigin href="/scara-cell-oip/assets/frame-B8tTlmvZ.js">
+    <link rel="modulepreload" crossorigin href="/scara-cell-oip/assets/conveyorBeds-CMaiFmCE.js">
+    <link rel="modulepreload" crossorigin href="/scara-cell-oip/assets/partGeometry-B2-lbFLG.js">
+    <link rel="modulepreload" crossorigin href="/scara-cell-oip/assets/structureConnections-Cbp7MeT2.js">
+    <link rel="modulepreload" crossorigin href="/scara-cell-oip/assets/iecAddress-C5eV284q.js">
+    <link rel="modulepreload" crossorigin href="/scara-cell-oip/assets/packageParams-peIUNo_T.js">
+    <link rel="modulepreload" crossorigin href="/scara-cell-oip/assets/controllerTag-npMnb7A_.js">
+    <link rel="modulepreload" crossorigin href="/scara-cell-oip/assets/scenePlcs-Bji7AZKN.js">
+    <link rel="modulepreload" crossorigin href="/scara-cell-oip/assets/units-DzTu2Erq.js">
+    <link rel="modulepreload" crossorigin href="/scara-cell-oip/assets/robotTools-lCC41oGO.js">
+    <link rel="modulepreload" crossorigin href="/scara-cell-oip/assets/partDiagnostics-VSlGg_Al.js">
+    <link rel="modulepreload" crossorigin href="/scara-cell-oip/assets/geometryEval-Df6BxPPK.js">
+    <link rel="modulepreload" crossorigin href="/scara-cell-oip/assets/partValidateRig-DxXBPGGY.js">
+    <link rel="modulepreload" crossorigin href="/scara-cell-oip/assets/partValidate-DTO8x1j1.js">
+    <link rel="modulepreload" crossorigin href="/scara-cell-oip/assets/dialect-DAVFXPiU.js">
+    <link rel="modulepreload" crossorigin href="/scara-cell-oip/assets/scene-BjT5zLiE.js">
+    <link rel="modulepreload" crossorigin href="/scara-cell-oip/assets/session-BDqfBvQ_.js">
+    <link rel="modulepreload" crossorigin href="/scara-cell-oip/assets/rooms-Blbe-Oz9.js">
+    <link rel="modulepreload" crossorigin href="/scara-cell-oip/assets/watchTable-D9U66CzD.js">
+    <link rel="modulepreload" crossorigin href="/scara-cell-oip/assets/watchKeys-DcqWCqXu.js">
+    <link rel="modulepreload" crossorigin href="/scara-cell-oip/assets/three.core-CNN9CqXD.js">
+    <link rel="modulepreload" crossorigin href="/scara-cell-oip/assets/three.module-BMM0sFZ4.js">
+    <link rel="modulepreload" crossorigin href="/scara-cell-oip/assets/assetVersions-CBd3YBEu.js">
+    <link rel="modulepreload" crossorigin href="/scara-cell-oip/assets/gltf-DuDChFvG.js">
+    <link rel="modulepreload" crossorigin href="/scara-cell-oip/assets/guardOpeningEdit-BpWfiBJM.js">
+    <link rel="modulepreload" crossorigin href="/scara-cell-oip/assets/legRests-BURY-lQA.js">
+    <link rel="modulepreload" crossorigin href="/scara-cell-oip/assets/renderMode-BKU83wgR.js">
+    <link rel="modulepreload" crossorigin href="/scara-cell-oip/assets/common-i7h2zm3k.js">
+    <link rel="modulepreload" crossorigin href="/scara-cell-oip/assets/metalEnvironment-BzUgMftY.js">
+    <link rel="modulepreload" crossorigin href="/scara-cell-oip/assets/shippedAssets-CmLuRmyw.js">
+    <link rel="modulepreload" crossorigin href="/scara-cell-oip/assets/robotIk-DlG_ztOu.js">
+    <link rel="modulepreload" crossorigin href="/scara-cell-oip/assets/quality-DDClmp1S.js">
+    <link rel="modulepreload" crossorigin href="/scara-cell-oip/assets/env-CHmkHT8n.js">
+    <link rel="modulepreload" crossorigin href="/scara-cell-oip/assets/glbBox-lUWi1Hkf.js">
+    <link rel="modulepreload" crossorigin href="/scara-cell-oip/assets/sdkPart-DX4m9w-w.js">
+    <link rel="modulepreload" crossorigin href="/scara-cell-oip/assets/conveyorDirection-xdMnsb-I.js">
+    <link rel="modulepreload" crossorigin href="/scara-cell-oip/assets/motionAxis-t6JeOmf-.js">
+    <link rel="modulepreload" crossorigin href="/scara-cell-oip/assets/parser-D4hLSESK.js">
+    <link rel="modulepreload" crossorigin href="/scara-cell-oip/assets/program-DNmshM-a.js">
+    <link rel="modulepreload" crossorigin href="/scara-cell-oip/assets/plcLink-Clkrh7ZT.js">
+    <link rel="modulepreload" crossorigin href="/scara-cell-oip/assets/sourceFacts-Bo89Pxhb.js">
+    <link rel="modulepreload" crossorigin href="/scara-cell-oip/assets/structure-lavOkJ7l.js">
+    <link rel="modulepreload" crossorigin href="/scara-cell-oip/assets/bindings-BhGs0dRo.js">
+    <link rel="modulepreload" crossorigin href="/scara-cell-oip/assets/plc-ClW964mp.js">
+    <link rel="modulepreload" crossorigin href="/scara-cell-oip/assets/stProgram-BwYxAEcN.js">
+    <link rel="modulepreload" crossorigin href="/scara-cell-oip/assets/buildingColumns-B2WVs3_A.js">
+    <link rel="modulepreload" crossorigin href="/scara-cell-oip/assets/preload-helper-C-8STllO.js">
+    <link rel="modulepreload" crossorigin href="/scara-cell-oip/assets/partSdk-DqXuipht.js">
+    <link rel="modulepreload" crossorigin href="/scara-cell-oip/assets/embeddedBehavior-DdAcuz3C.js">
+    <link rel="modulepreload" crossorigin href="/scara-cell-oip/assets/buildPackage-CBYtu8ev.js">
+    <link rel="modulepreload" crossorigin href="/scara-cell-oip/assets/builtInVersion-BDPObcrq.js">
+    <link rel="modulepreload" crossorigin href="/scara-cell-oip/assets/projectTest-CgzDliFL.js">
+    <link rel="modulepreload" crossorigin href="/scara-cell-oip/assets/sha256-8V-12wIr.js">
+    <link rel="modulepreload" crossorigin href="/scara-cell-oip/assets/partAssets-8bHLwIdP.js">
+    <link rel="modulepreload" crossorigin href="/scara-cell-oip/assets/projectArchive-D1p0PY8f.js">
+    <link rel="modulepreload" crossorigin href="/scara-cell-oip/assets/opcUa-uyUSs84m.js">
+    <link rel="modulepreload" crossorigin href="/scara-cell-oip/assets/storePrefs-BCb5bm7V.js">
+    <link rel="modulepreload" crossorigin href="/scara-cell-oip/assets/localAssets-GcXf-gj6.js">
+    <link rel="modulepreload" crossorigin href="/scara-cell-oip/assets/sceneFile-3-ILVcFu.js">
+    <link rel="modulepreload" crossorigin href="/scara-cell-oip/assets/i18n-CcXb1eK6.js">
+    <link rel="modulepreload" crossorigin href="/scara-cell-oip/assets/assignController-CgcnTtOG.js">
+    <link rel="modulepreload" crossorigin href="/scara-cell-oip/assets/partShelf-Dycyl2PJ.js">
+    <link rel="modulepreload" crossorigin href="/scara-cell-oip/assets/collabServer-BrX9ZZir.js">
+    <link rel="modulepreload" crossorigin href="/scara-cell-oip/assets/commands-CLLI0Nml.js">
+    <link rel="modulepreload" crossorigin href="/scara-cell-oip/assets/renderReady-gwwbT_J8.js">
+    <link rel="modulepreload" crossorigin href="/scara-cell-oip/assets/rollerGrid-axBjkHCu.js">
+    <link rel="modulepreload" crossorigin href="/scara-cell-oip/assets/partArchive-hCFTswAP.js">
+    <link rel="modulepreload" crossorigin href="/scara-cell-oip/assets/partFile-DreVED4P.js">
+    <link rel="modulepreload" crossorigin href="/scara-cell-oip/assets/jointPlcControl-BvJOBzFc.js">
+    <link rel="modulepreload" crossorigin href="/scara-cell-oip/assets/jsx-runtime-NZYk81nU.js">
+    <link rel="modulepreload" crossorigin href="/scara-cell-oip/assets/toolbarIcons-BISViKk8.js">
+    <link rel="modulepreload" crossorigin href="/scara-cell-oip/assets/partChangeDialog-DbmIFjTg.js">
+    <link rel="modulepreload" crossorigin href="/scara-cell-oip/assets/menu-JU1leHgL.js">
+    <link rel="modulepreload" crossorigin href="/scara-cell-oip/assets/partLibraryUrls-BHfSQqDi.js">
+    <link rel="modulepreload" crossorigin href="/scara-cell-oip/assets/programFacts-Ct9xniz4.js">
+    <link rel="modulepreload" crossorigin href="/scara-cell-oip/assets/tags-deVZmWT2.js">
+    <link rel="stylesheet" crossorigin href="/scara-cell-oip/assets/app-C9MaK5kc.css">
+  <link rel="manifest" href="/scara-cell-oip/manifest.webmanifest"></head>
+  <body>
+    <div id="boot-skeleton" aria-hidden="true">
+      <div class="bs-toolbar">
+        <div class="bs-tb-left">
+          <img class="bs-mark" src="/scara-cell-oip/oip-icon.svg" alt="" />
+          <span class="bs-ghost bs-project"></span>
+        </div>
+        <div class="bs-tb-run">
+          <span class="bs-transport">
+            <span class="bs-ghost" style="width: 40px"></span>
+            <span class="bs-ghost" style="width: 40px"></span>
+            <span class="bs-ghost" style="width: 40px"></span>
+          </span>
+          <span class="bs-ghost bs-speed" style="width: 40px; margin-left: 4px"></span>
+        </div>
+        <div class="bs-tb-right">
+          <span class="bs-ghost bs-more"></span>
+          <span class="bs-ghost bs-share"></span>
+          <span class="bs-ghost bs-icon"></span>
+          <span class="bs-ghost bs-icon"></span>
+          <span class="bs-sep"></span>
+          <span class="bs-ghost bs-icon"></span>
+          <span class="bs-ghost bs-icon"></span>
+        </div>
+      </div>
+      <div class="bs-left">
+        <div class="bs-tabs"><span class="bs-tab bs-on">Scene</span><span class="bs-tab">History</span></div>
+      </div>
+      <div class="bs-gutl"></div>
+      <div class="bs-viewport">
+        <img src="/scara-cell-oip/oip-logo.svg" alt="" />
+        <div>Loading…</div>
+      </div>
+      <div class="bs-gutr"></div>
+      <div class="bs-right">
+        <div class="bs-tabs"><span class="bs-tab bs-on">Inspector</span></div>
+      </div>
+      <div class="bs-tabbar"></div>
+      <div class="bs-gutd"></div>
+      <div class="bs-dock">
+        <div class="bs-tabs"><span class="bs-tab bs-on">Parts</span><span class="bs-tab">PLC</span><span class="bs-tab">Problems</span><span class="bs-tab">Watch</span></div>
+      </div>
+    </div>
+    <!-- The tabs above in the editor's language, from the translations a past visit cached
+         (src/editor/autoTranslate.ts), so the handover to the app's own tabs keeps their words. A tab is matched
+         by its English text against the `dock.panel.*` messages (src/editor/dockLayout.ts). -->
+    <script>
+      try {
+        if (localStorage.getItem('oip-web/language') !== 'en') {
+          var cache = JSON.parse(localStorage.getItem('oip-web/translations') || 'null')
+          var lang = ((navigator.languages && navigator.languages[0]) || navigator.language || '').trim()
+          if (cache && cache.lang === lang && cache.entries) {
+            var tabs = document.querySelectorAll('#boot-skeleton .bs-tab')
+            for (var i = 0; i < tabs.length; i++) {
+              for (var id in cache.entries) {
+                var entry = cache.entries[id]
+                if (id.indexOf('dock.panel.') === 0 && entry[0] === tabs[i].textContent) {
+                  tabs[i].textContent = entry[1]
+                  break
+                }
+              }
+            }
+          }
+        }
+      } catch (e) {}
+    </script>
+    <div id="root"></div>
+  </body>
+</html>

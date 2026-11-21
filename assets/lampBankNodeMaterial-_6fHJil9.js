@@ -1,0 +1,1 @@
+import{Zn as e}from"./three.tsl-Bv_oR2XZ.js";import{MeshStandardNodeMaterial as t}from"./three.webgpu-DwRLC9Io.js";function n(){let n=new t,r=e(`lampGlow`,`vec4`);return n.emissiveNode=r.xyz,n.opacityNode=r.w,n}export{n as createLampBankNodeMaterial};

@@ -1,0 +1,1 @@
+import{ho as e}from"./three.tsl-Bv_oR2XZ.js";import{t}from"./tickUniformGroup-BJsaeL9M.js";var n=null;function r(){return n||=e(0).setGroup(t()),n}function i(e){r().value=e}export{r as animClockNode,i as setAnimClockNode};

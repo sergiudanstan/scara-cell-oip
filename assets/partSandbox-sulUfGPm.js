@@ -1,0 +1,1 @@
+function e(){return Object.isFrozen(Array.prototype)&&typeof globalThis.Compartment==`function`}export{e as t};

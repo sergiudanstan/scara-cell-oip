@@ -1,0 +1,1 @@
+import{r as e,t}from"./parser-D4hLSESK.js";var n=4,r=[];function i(i){let a=r.findIndex(e=>e.source===i);if(a>=0){let e=r[a];return a>0&&(r.splice(a,1),r.unshift(e)),e.value}let o=[],s;try{s=t(e(i),o)}catch{s=null}let c={ast:s,notes:o};return r.unshift({source:i,value:c}),r.length>n&&r.pop(),c}export{i as t};

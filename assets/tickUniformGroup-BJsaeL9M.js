@@ -1,0 +1,1 @@
+import{n as e}from"./rolldown-runtime-hePW80VL.js";import{n as t}from"./common-i7h2zm3k.js";import{Za as n}from"./three.tsl-Bv_oR2XZ.js";var r=e({bumpTickUniformGroup:()=>o,tickUniformGroup:()=>a}),i=null;function a(){return i||=n(t),i}function o(){i&&(i.needsUpdate=!0)}export{r as n,a as t};

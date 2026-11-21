@@ -1,0 +1,247 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#17191b" />
+
+    <link rel="icon" type="image/png" sizes="32x32" href="/scara-cell-oip/favicon-32.png" />
+    <link rel="icon" type="image/png" sizes="16x16" href="/scara-cell-oip/favicon-16.png" />
+    <link rel="apple-touch-icon" href="/scara-cell-oip/apple-touch-icon.png" />
+
+    <title>Send a part's state back to the PLC | Open Industry Project</title>
+    <meta name="description" content="Step by step: report where a moving piece of your part is, the way a cylinder's position switches do, and let a PLC program catch a stroke that takes too long." />
+    <meta name="keywords" content="custom part, end position, reed switch, PLC tag, BOOL, fault, Structured Text, simulator, virtual commissioning" />
+    <link rel="canonical" href="https://www.openindustryproject.org/guides/part-feedback/" />
+
+    <meta property="og:type" content="article" />
+    <meta property="og:site_name" content="Open Industry Project" />
+    <meta property="og:title" content="Send a part's state back to the PLC | Open Industry Project" />
+    <meta property="og:description" content="Step by step: report where a moving piece of your part is, the way a cylinder's position switches do, and let a PLC program catch a stroke that takes too long." />
+    <meta property="og:url" content="https://www.openindustryproject.org/guides/part-feedback/" />
+    <meta property="og:image" content="https://www.openindustryproject.org/og-image.jpg?v=20261013" />
+    <meta name="twitter:card" content="summary_large_image" />
+
+    <!-- A hand-written page. Every label below is read from the app (editor/jointPlcControl.ts, the Inspector's Comms
+         group), and e2e/guide-part-feedback.mjs follows the page in the desktop app, starting where /guides/part-motion/
+         ends. Change those and this goes stale. -->
+
+    <link rel="preload" href="/scara-cell-oip/fonts/plex-sans-400.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href="/scara-cell-oip/fonts/plex-sans-600.woff2" as="font" type="font/woff2" crossorigin />
+
+    <script type="module" crossorigin src="/scara-cell-oip/assets/modulepreload-polyfill-P2Xu9kJm.js"></script>
+    <script type="module" crossorigin src="/scara-cell-oip/assets/copyCode-BXJSFsDR.js"></script>
+    <link rel="stylesheet" crossorigin href="/scara-cell-oip/assets/site-DNJJBpT8.css">
+  <link rel="manifest" href="/scara-cell-oip/manifest.webmanifest"></head>
+
+  <body class="doc">
+
+    <header class="nav">
+      <div class="wrap nav-inner">
+        <a class="nav-logo" href="/" aria-label="Open Industry Project home"><img src="/scara-cell-oip/oip-logo.svg" alt="Open Industry Project" /></a>
+        <nav class="nav-links" aria-label="Site">
+          <a href="/plc/">PLC reference</a>
+          <a href="/guides/">Guides</a>
+          <a href="https://github.com/Open-Industry-Project/Open-Industry-Project" target="_blank" rel="noopener noreferrer">GitHub</a>
+        </nav>
+        <a class="btn btn-sm" href="/app/">Open the editor</a>
+      </div>
+    </header>
+
+    <main class="wrap">
+      <section class="hero">
+        <h1>Sending a part's state back to the PLC</h1>
+        <p class="lede">
+          A PLC that sends a cylinder somewhere does not assume it got there. Switches on the cylinder tell it which end
+          the rod is at. If a stroke takes too long, because of low air, a jam or a sticking valve, the program raises a
+          fault.
+        </p>
+        <p class="lede">
+          In this guide your blade stop reports blade up and blade down to the program, and the program catches a blade
+          that is too slow. It takes about five minutes.
+        </p>
+
+        <h2>You need</h2>
+        <ul class="dash">
+          <li>The project from <a href="/guides/part-motion/">Making a piece move on a PLC command</a>: Blade Stop 900, its blade driven by <code>RaiseBlade</code>.</li>
+        </ul>
+
+        <ul class="toc">
+          <li><a href="#wire">1. Wire the end positions</a></li>
+          <li><a href="#program">2. Write the program</a></li>
+          <li><a href="#run">3. Run it</a></li>
+          <li><a href="#fail">4. Make it fail</a></li>
+          <li><a href="#trouble">Troubleshooting</a></li>
+        </ul>
+      </section>
+    </main>
+
+    <section class="section" id="wire">
+      <div class="wrap">
+        <h2>1. Wire the end positions</h2>
+        <p>
+          Setting the joint's PLC control to Two positions gave the blade stop three tags. <span class="ui">Command</span> already holds
+          <code>RaiseBlade</code>. Select
+          <b>Blade Stop 900</b>, open its <span class="ui">Comms</span> group, and type the other two:
+        </p>
+        <div class="scroll-x">
+          <table class="map">
+            <thead><tr><th>Part</th><th>Field</th><th>Type in</th><th>Meaning</th></tr></thead>
+            <tbody>
+              <tr><td>Blade Stop 900</td><td>At A</td><td class="m">BladeDown</td><td>True while the blade is all the way down.</td></tr>
+              <tr><td>Blade Stop 900</td><td>At B</td><td class="m">BladeUp</td><td>True while the blade is all the way up.</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p>
+          The Inspector marks these two <b>write</b> and Command <b>read</b>, from the part's side: the part reads
+          the command and writes where the blade is. While the blade is moving, both are false.
+        </p>
+        <p>
+          For now the two new fields have a <b>!</b> beside them. Its tooltip says the program does not declare
+          <code>BladeDown</code> or <code>BladeUp</code> yet. Step 2 declares them.
+        </p>
+      </div>
+    </section>
+
+    <section class="section" id="program">
+      <div class="wrap">
+        <h2>2. Write the program</h2>
+        <p>Open the <span class="ui">PLC</span> tab and replace the program with this one:</p>
+        <pre class="code" translate="no" data-copy><code>PROGRAM Main
+VAR
+  RaiseBlade : BOOL;
+  BladeUp : BOOL;
+  BladeDown : BOOL;
+  BladeFault : BOOL;
+  Cycle : TON;
+  Travel : TON;
+END_VAR
+
+Cycle(IN := NOT Cycle.Q, PT := T#2s);
+IF Cycle.Q THEN
+  RaiseBlade := NOT RaiseBlade;
+END_IF;
+
+Travel(IN := (RaiseBlade AND NOT BladeUp) OR (NOT RaiseBlade AND NOT BladeDown), PT := T#500ms);
+IF Travel.Q THEN
+  BladeFault := TRUE;
+END_IF;
+END_PROGRAM</code></pre>
+        <p>
+          The first part is the last guide's program: the blade goes up and down every 2 seconds. The second part times
+          each stroke. <code>Travel</code> runs while the blade has been sent somewhere and has not arrived. If that
+          takes more than half a second, <code>BladeFault</code> turns on and stays on until the next Play.
+        </p>
+        <p>
+          Select <b>Blade Stop 900</b> again. Each of its three fields now has a <b>✓</b>, because the program
+          drives <code>RaiseBlade</code> and reads the other two.
+        </p>
+        <figure class="shot">
+          <img src="data:image/webp;base64,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" width="395" height="185" loading="lazy" decoding="async"
+            alt="The blade stop's Comms group: Command set to RaiseBlade, At A to BladeDown and At B to BladeUp, each with a check mark." />
+          <figcaption>The blade stop's three tags, wired to the program.</figcaption>
+        </figure>
+      </div>
+    </section>
+
+    <section class="section" id="run">
+      <div class="wrap">
+        <h2>3. Run it</h2>
+        <p>
+          Press <span class="ui">Play</span> and watch the values in the code editor. <code>BladeUp</code> is true while the
+          blade is up and <code>BladeDown</code> while it is down. Each stroke takes 0.2 seconds, well inside the half
+          second, so <code>BladeFault</code> stays false.
+        </p>
+      </div>
+    </section>
+
+    <section class="section" id="fail">
+      <div class="wrap">
+        <h2>4. Make it fail</h2>
+        <p>
+          Press <span class="ui">Stop</span>. A blade with too little air moves slowly, so slow this one down. Select
+          <b>Blade Stop 900</b> and type:
+        </p>
+        <div class="scroll-x">
+          <table class="map">
+            <thead><tr><th>Part</th><th>Field</th><th>Type in</th><th>Meaning</th></tr></thead>
+            <tbody>
+              <tr><td>Blade Stop 900</td><td>Stroke Time</td><td class="m">1</td><td>One second per stroke, twice the time the program allows.</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p>
+          Press <span class="ui">Play</span>. The first time the blade rises, it is still on its way after half a second,
+          and <code>BladeFault</code> turns true. It stays true while the blade carries on.
+        </p>
+        <figure class="shot">
+          <img src="/scara-cell-oip/assets/fault-itR06gEz.webp" width="1316" height="451" loading="lazy" decoding="async"
+            alt="The PLC tab's code editor during a run, with BladeFault shown as TRUE." />
+          <figcaption>A stroke that took too long, caught by the program.</figcaption>
+        </figure>
+        <p>
+          Press <span class="ui">Stop</span> and set <span class="ui">Stroke Time</span> back to <b>0.2</b>. The next guide
+          starts from there.
+        </p>
+        <div class="note tip">
+          <p>
+            A real program would also stop the line on <code>BladeFault</code>, and wait for an operator to reset it. Here
+            Stop and Play reset it, because each run starts the program from scratch.
+          </p>
+        </div>
+        <p>
+          Next: <a href="/guides/part-product/">Stopping product with a moving part</a>, where the blade holds real boxes.
+        </p>
+      </div>
+    </section>
+
+    <section class="section" id="trouble">
+      <div class="wrap">
+        <h2>Troubleshooting</h2>
+        <dl class="trouble">
+          <dt>BladeUp and BladeDown stay false.</dt>
+          <dd>The copy's <span class="ui">At A</span> and <span class="ui">At B</span> are empty, or spelled differently from the program. The names must match exactly.</dd>
+
+          <dt>BladeFault turns true at a stroke time of 0.2.</dt>
+          <dd>At A and At B are swapped. At A is the bottom, <code>BladeDown</code>, and At B the top, <code>BladeUp</code>. Otherwise check that the program's <code>PT := T#500ms</code> was not changed.</dd>
+
+          <dt>BladeFault stays false at a stroke time of 1.</dt>
+          <dd>The Stroke Time was changed on another copy. Select the copy under the conveyor and type it there.</dd>
+        </dl>
+      </div>
+    </section>
+
+    <footer class="site">
+      <div class="wrap">
+        <div class="foot-grid">
+          <div>
+            <img class="mark" src="/scara-cell-oip/oip-logo.svg" alt="Open Industry Project" />
+            <p class="blurb">A free industrial simulator, in your browser or as a desktop app.</p>
+          </div>
+          <div>
+            <h4>Get it</h4>
+            <ul>
+              <li><a href="https://downloads.openindustryproject.org/desktop/Open-Industry-Project-Setup.exe">Download for Windows</a></li>
+              <li><a href="https://downloads.openindustryproject.org/desktop/open-industry-project_amd64.deb">Download for Linux (.deb)</a></li>
+              <li><a href="/app/">Launch the simulator in the browser</a></li>
+            </ul>
+          </div>
+          <div>
+            <h4>Explore</h4>
+            <ul>
+              <li><a href="/guides/">All guides</a></li>
+              <li><a href="https://github.com/Open-Industry-Project/Open-Industry-Project/blob/main/docs/part-authoring-guide.md" target="_blank" rel="noopener noreferrer">Part authoring reference</a></li>
+              <li><a href="/plc/">PLC language reference</a></li>
+              <li><a href="/app/?scene=demo">See a PLC-driven line run</a></li>
+              <li><a href="/">Back to the front page</a></li>
+            </ul>
+          </div>
+        </div>
+        <div class="foot-bottom">
+          <span>&copy; Automation Standard LLC and contributors</span>
+        </div>
+      </div>
+    </footer>
+  </body>
+</html>
