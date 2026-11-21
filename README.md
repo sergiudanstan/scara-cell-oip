@@ -36,10 +36,13 @@ pass-through station routing and outfeed merge protection.
 
 ### The 4-axis SCARA part (`parts/scara.transfer-robot`)
 
-The model (`tools/model.mjs`, our own procedural geometry, no vendor CAD) consists of a bolted steel floor pedestal,
-a cast base column with rear junction box, a contoured cast J1 shoulder arm (`L1 = 325 mm`), a J2 elbow turret and
-forearm with sculpted servo/belt housing and corrugated umbilical arch (`L2 = 275 mm`, total reach `600 mm`), a J3
-vertical ball-screw spline shaft (`250 mm` stroke), and a J4 wrist flange carrying a 4-cup vacuum manifold.
+The model (`tools/model.mjs`, our own procedural geometry, no vendor CAD) consists of a bolted steel floor pedestal
+with 4 adjustable levelling feet and welded triangular gusset ribs, a filleted cast base column with rear cooling fins
+and Harting multi-pin connector hood (cable routed into the pedestal flange gland), a contoured cast J1 shoulder arm
+(`L1 = 325 mm`) with recessed side pockets, a J2 elbow turret and forearm (`L2 = 275 mm`, total reach `600 mm`), a
+corrugated umbilical conduit anchored into rotary strain-relief glands on both the `J1` and `J2` axes (never detaching
+at any joint angle), a J3 vertical ball-screw spline shaft (`250 mm` stroke) with convoluted rubber bellows boot, and a
+J4 wrist flange carrying a 4-cup multi-fold bellows vacuum manifold with full pneumatic tubing to every fitting.
 
 Every tick, `behavior.js` solves the 4-DOF analytical SCARA inverse kinematics (`ik(tcp)`):
 - `J1` and `J2` position the quill axis over `(x, z)` using the elbow-right branch (staying clear of the column as the
