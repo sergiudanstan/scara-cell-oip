@@ -6,6 +6,8 @@ infeed line to a shared outfeed conveyor. The cell is built in [Open Industry Pr
 OIP rig part (`parts/scara.transfer-robot`), placed twice (`robot1` and `robot2`) and driven by an ST program through
 two independent handshakes.
 
+![The Dual-SCARA cell running in the OIP editor](docs/cell.png)
+
 It is the sister of [duopod-cell-oip](https://github.com/sergiudanstan/duopod-cell-oip) and
 [delta-cell-oip](https://github.com/sergiudanstan/delta-cell-oip), redesigned for dual-robot parallel picking with
 pass-through station routing and outfeed merge protection.
@@ -35,6 +37,8 @@ pass-through station routing and outfeed merge protection.
 | Robots | `robot1` (`z = +0.75 m`) and `robot2` (`z = -0.15 m`), instances of `parts/scara.transfer-robot` (Draco GLB, 0.07 MB part) |
 
 ### The 4-axis SCARA part (`parts/scara.transfer-robot`)
+
+![The 4-axis SCARA robot at Station 1](docs/robot.png)
 
 The model (`tools/model.mjs`, our own procedural geometry, no vendor CAD) consists of a bolted steel floor pedestal
 with 4 adjustable levelling feet and welded triangular gusset ribs, a filleted cast base column with rear cooling fins

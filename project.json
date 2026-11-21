@@ -18,6 +18,7 @@
     "parts/oip.box",
     "parts/oip.despawner",
     "parts/oip.diffuse-sensor",
+    "parts/oip.shape",
     "parts/oip.push-button",
     "parts/oip.stack-light"
   ]
