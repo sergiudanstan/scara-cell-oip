@@ -1,5 +1,10 @@
 # Dual-SCARA parallel transfer cell in Open Industry Project
 
+[![CI](https://github.com/sergiudanstan/scara-cell-oip/actions/workflows/ci.yml/badge.svg)](https://github.com/sergiudanstan/scara-cell-oip/actions/workflows/ci.yml)
+[![CodeQL](https://github.com/sergiudanstan/scara-cell-oip/actions/workflows/codeql.yml/badge.svg)](https://github.com/sergiudanstan/scara-cell-oip/actions/workflows/codeql.yml)
+[![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/sergiudanstan/scara-cell-oip/badge)](https://scorecard.dev/viewer/?uri=github.com/sergiudanstan/scara-cell-oip)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+
 Two floor-pedestal 4-axis SCARA robots (600 mm reach, 6 kg class) transfer 3 kg cartons in parallel from a two-station
 infeed line to a shared outfeed conveyor. The cell is built in [Open Industry Project](https://openindustryproject.org)
 (OIP), a free, MIT-licensed browser simulator with Jolt physics and a built-in IEC 61131-3 PLC. The SCARA is a custom
@@ -85,7 +90,7 @@ Run from a checkout of OIP:
 
 ```sh
 cd open-industry-project
-P=/Users/sara/code/scara-cell-oip
+P=/path/to/scara-cell-oip
 npm run check-part -- $P/parts/scara.transfer-robot
 npm run validate-project -- $P --strict
 npm run check-st -- $P/plc
@@ -105,6 +110,29 @@ node $P/tools/check_kin.mjs      # 4-DOF SCARA kinematics closure and joint rang
 | `tools/build_scene.sh` | lay out the dual-SCARA cell with OIP's `add-part`, bind `plc/` and `tests/` |
 | `tools/scene_file.mjs` | write `dist/scara-cell.scene.json`, the single-file scene for Import Project |
 | `tools/build_site.sh` | build the GitHub Pages site (`_build/site`) with auto-load of the cell |
+
+## Development
+
+CI (`.github/workflows/ci.yml`) runs on every push and pull request, against the pinned OIP commit
+[`7ed2b7d`](https://github.com/Open-Industry-Project/Open-Industry-Project/commit/7ed2b7dbf01835365ba3432bbdd84d933a843dde):
+
+1. **OIP project checks and tests**: `check-part`, `validate-project --strict`, `check-st`, `check-wiring --strict`,
+   `check-layout`, `tools/check_kin.mjs`, the three project tests, and `tools/perturb.sh` (the tests must fail on mutated programs).
+2. **Published site smoke test**: builds the GitHub Pages site with `tools/build_site.sh`, opens it in headless Chrome
+   (`tests/site-smoke.mjs`) and fails unless the cell loads, the PLC runs and the robot picks a carton, with no page
+   error or failed request.
+3. **Security audit**: `pip-audit` on the hash-pinned CI toolchain, `npm audit` on the test tooling, and `zizmor` on
+   the workflows. CodeQL and OpenSSF Scorecard run as their own workflows.
+
+To run the site test locally (needs Google Chrome; set `PW_CHANNEL=chromium` for Playwright's Chromium):
+
+```sh
+npm ci --ignore-scripts
+OIP=/path/to/open-industry-project tools/build_site.sh _build/site
+node tests/site-smoke.mjs _build/site
+```
+
+See [CONTRIBUTING.md](CONTRIBUTING.md), [SECURITY.md](SECURITY.md) and [CHANGELOG.md](CHANGELOG.md).
 
 ## Licences and disclaimer
 
