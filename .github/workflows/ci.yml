@@ -1,0 +1,50 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  # The cell is checked with OIP's own tools, at the OIP commit the README pins.
+  test:
+    runs-on: ubuntu-24.04
+    env:
+      OIP: ${{ github.workspace }}/oip
+      P: ${{ github.workspace }}/cell
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          path: cell
+          persist-credentials: false
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: Open-Industry-Project/Open-Industry-Project
+          ref: 7ed2b7dbf01835365ba3432bbdd84d933a843dde
+          path: oip
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: oip/package-lock.json
+      - run: npm ci
+        working-directory: oip
+      - run: sudo apt-get install -y zsh
+      - name: OIP checks
+        working-directory: oip
+        run: |
+          npm run check-part -- "$P/parts/scara.transfer-robot"
+          npm run validate-project -- "$P" --strict
+          npm run check-st -- "$P/plc"
+          npm run check-wiring -- "$P" --strict
+          npm run check-layout -- "$P"
+          npm run test-project -- "$P"
+      - name: Tests must fail on mutated programs
+        run: zsh "$P/tools/perturb.sh"
+      - name: Kinematics
+        run: node "$P/tools/check_kin.mjs"
