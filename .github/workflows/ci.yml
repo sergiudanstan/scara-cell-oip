@@ -1,0 +1,114 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+# Least privilege by default; no job here needs to write anything.
+permissions:
+  contents: read
+
+env:
+  # The Open Industry Project commit the cell was built and validated against (see README, "Pinned OIP commit").
+  OIP_REPOSITORY: Open-Industry-Project/Open-Industry-Project
+  OIP_REF: 7ed2b7dbf01835365ba3432bbdd84d933a843dde
+
+jobs:
+  oip-project:
+    name: OIP project checks and tests
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          path: cell
+          persist-credentials: false
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: Open-Industry-Project/Open-Industry-Project
+          ref: 7ed2b7dbf01835365ba3432bbdd84d933a843dde
+          path: oip
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: "24"
+      - name: Install OIP's tooling from its lockfile
+        working-directory: oip
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Robot part, project manifest, PLC program, wiring and layout
+        working-directory: oip
+        env:
+          P: ${{ github.workspace }}/cell
+        run: |
+          set -euo pipefail
+          npm run -s check-part -- "$P/parts/scara.transfer-robot"
+          npm run -s validate-project -- "$P" --strict
+          npm run -s check-st -- "$P/plc"
+          npm run -s check-wiring -- "$P" --strict
+          npm run -s check-layout -- "$P"
+      - name: Kinematics closure and joint range of the robot part
+        working-directory: cell
+        run: node tools/check_kin.mjs
+      - name: Project tests (transfer, escapement interlock, E-stop) in OIP's physics and PLC engine
+        working-directory: oip
+        run: npm run -s test-project -- "$GITHUB_WORKSPACE/cell"
+      - name: Mutants of the PLC program must be caught by those tests
+        # tools/perturb.sh removes a protection from a copy of program.st and exits 0 only if a test fails.
+        working-directory: cell
+        run: |
+          sudo apt-get install -y -qq zsh
+          OIP="$GITHUB_WORKSPACE/oip" zsh tools/perturb.sh
+
+  site:
+    name: published site smoke test
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          path: cell
+          persist-credentials: false
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: Open-Industry-Project/Open-Industry-Project
+          ref: 7ed2b7dbf01835365ba3432bbdd84d933a843dde
+          path: oip
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: "24"
+      - name: Install OIP's tooling and this repo's test dependency from their lockfiles
+        run: |
+          npm ci --ignore-scripts --no-audit --no-fund --prefix oip
+          npm ci --ignore-scripts --no-audit --no-fund --prefix cell
+      - name: Build the GitHub Pages site (OIP editor plus the cell)
+        working-directory: cell
+        run: |
+          sudo apt-get install -y -qq zsh
+          OIP="$GITHUB_WORKSPACE/oip" zsh tools/build_site.sh "$GITHUB_WORKSPACE/_build/site"
+      - name: Open the built site in headless Chrome, require the cell to load, run and pick
+        # Chrome is preinstalled on the runner image; playwright-core drives it, so no browser download is needed.
+        working-directory: cell
+        run: node tests/site-smoke.mjs _build/site
+
+  audit:
+    name: security audit
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.13"
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: "24"
+      - name: Install audit tooling (hash-pinned)
+        run: python -m pip install --require-hashes -r .github/requirements-ci.lock
+      - name: Known vulnerabilities in the CI toolchain
+        run: pip-audit --strict --no-deps -r .github/requirements-ci.lock --progress-spinner off
+      - name: Known vulnerabilities in npm dependencies
+        run: npm audit --audit-level=low
+      - name: Audit the workflows themselves
+        run: zizmor --format plain .github/workflows/

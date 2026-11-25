@@ -1,0 +1,14 @@
+{
+  "name": "scara-cell-oip",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Dual-SCARA parallel transfer cell for Open Industry Project",
+  "license": "MIT",
+  "type": "module",
+  "scripts": {
+    "test:site": "node tests/site-smoke.mjs"
+  },
+  "devDependencies": {
+    "playwright-core": "1.65.0"
+  }
+}
