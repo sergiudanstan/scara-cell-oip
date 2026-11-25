@@ -89,7 +89,7 @@ jobs:
       - name: Open the built site in headless Chrome, require the cell to load, run and pick
         # Chrome is preinstalled on the runner image; playwright-core drives it, so no browser download is needed.
         working-directory: cell
-        run: node tests/site-smoke.mjs _build/site
+        run: node tests/site-smoke.mjs "$GITHUB_WORKSPACE/_build/site"
 
   audit:
     name: security audit
