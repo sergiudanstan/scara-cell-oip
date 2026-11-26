@@ -1,5 +1,8 @@
 # Dual-SCARA parallel transfer cell in Open Industry Project
 
+> **This repository has moved to [sergiudanstan/oip-cells](https://github.com/sergiudanstan/oip-cells/tree/main/cells/scara) and is archived.**
+> The cell now lives in `cells/scara/` with its history preserved. Live: https://sergiudanstan.github.io/oip-cells/scara/
+
 [![CI](https://github.com/sergiudanstan/scara-cell-oip/actions/workflows/ci.yml/badge.svg)](https://github.com/sergiudanstan/scara-cell-oip/actions/workflows/ci.yml)
 [![CodeQL](https://github.com/sergiudanstan/scara-cell-oip/actions/workflows/codeql.yml/badge.svg)](https://github.com/sergiudanstan/scara-cell-oip/actions/workflows/codeql.yml)
 [![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/sergiudanstan/scara-cell-oip/badge)](https://scorecard.dev/viewer/?uri=github.com/sergiudanstan/scara-cell-oip)
